@@ -3,10 +3,9 @@
 #include "FirebaseManager.h"
 #include "TimeManager.h"
 #include "ADSManager.h"
+#include "WiFiHelper.h"
 
-// Credenciais Wi-Fi
-#define WIFI_SSID "S23"
-#define WIFI_PASSWORD "12345678"
+WiFiHelper wifiHelper;
 
 // Configuração do Firebase
 #define API_KEY "AIzaSyD0Xugrn8xexb3eMF3AplTWljXdYmRgW0E"
@@ -22,22 +21,15 @@ unsigned long sendDataPrevMillis = 0;
 void setup() {
   Serial.begin(115200);
 
+  wifiHelper.begin(); // Inicializa o WiFi
+
   // Inicializar o ADS1115
   if (!adsManager.begin()) {
     Serial.println("❌ Falha ao inicializar o ADS1115!");
     while (1);
   }
 
-  // Conectar ao Wi-Fi
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.print("🔗 Conectando ao Wi-Fi...");
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(500);
-  }
-  Serial.println("\n✅ Wi-Fi Conectado!");
-
-  // Configurar NTP para obter a hora correta
+   // Configurar NTP para obter a hora correta
   timeManager.begin();
 
   // Inicializar Firebase
@@ -45,6 +37,9 @@ void setup() {
 }
 
 void loop() {
+
+  wifiHelper.verificaConexao(); // Verifica a conexão sem bloquear o ESP32
+  
   if (firebaseManager.isReady() && (millis() - sendDataPrevMillis > 2000 || sendDataPrevMillis == 0)) {
     sendDataPrevMillis = millis();
 

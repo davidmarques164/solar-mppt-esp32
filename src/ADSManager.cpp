@@ -15,7 +15,7 @@ bool ADSManager::begin() {
 
 float ADSManager::readVoltage() {
   int16_t adc0 = ads.readADC_SingleEnded(0); // Ler tensão no A0
-  return (adc0 * 0.0017633675) ; // Converter para volts
+  return (adc0 * 0.0017633675) ; // Converter para volts    
 }
 
 float ADSManager::readCurrent() {
