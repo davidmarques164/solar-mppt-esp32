@@ -9,6 +9,9 @@ public:
   bool begin();
   float readVoltage();
   float readCurrent();
+  float readA2();
+  float readA3();
+
 
 private:
   Adafruit_ADS1115 ads;

@@ -22,3 +22,13 @@ float ADSManager::readCurrent() {
   int16_t adc1 = ads.readADC_SingleEnded(1); // Ler corrente no A1
   return (adc1 * 0.0005142857) ; // Converter para amperes
 }
+
+float ADSManager::readA2() {
+  int16_t adc2 = ads.readADC_SingleEnded(1); // Ler corrente no A1
+  return (adc2) ; // Converter para amperes
+}
+
+float ADSManager::readA3() {
+  int16_t adc3 = ads.readADC_SingleEnded(1); // Ler corrente no A1
+  return (adc3) ; // Converter para amperes
+}
