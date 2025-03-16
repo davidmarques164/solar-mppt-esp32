@@ -1,48 +1,57 @@
 #include "FirebaseManager.h"
 
-FirebaseManager::FirebaseManager(const char* apiKey, const char* databaseUrl) {
-  config.api_key = apiKey;
-  config.database_url = databaseUrl;
-  signupOK = false;
+FirebaseManager::FirebaseManager(const char* apiKey, const char* projectId) {
+    this->apiKey = apiKey;
+    this->projectId = projectId;
+    this->firestoreUrl = "https://firestore.googleapis.com/v1/projects/" + String(projectId) + "/databases/(default)/documents/leituras?key=" + String(apiKey);
 }
 
 void FirebaseManager::begin() {
-  if (Firebase.signUp(&config, &auth, "", "")) {
-    Serial.println("🔥 Autenticação Anônima bem-sucedida!");
-    signupOK = true;
-  } else {
-    Serial.printf("❌ Erro na autenticação: %s\n", config.signer.signupError.message.c_str());
-  }
-
-  Firebase.begin(&config, &auth);
-  Firebase.reconnectWiFi(true);
+    Serial.println("🔥 Firebase Manager iniciado!");
 }
 
 bool FirebaseManager::isReady() {
-  return Firebase.ready() && signupOK;
+    return WiFi.status() == WL_CONNECTED;
 }
 
-bool FirebaseManager::sendData(const String& path, const String& timestamp, float tensaoEntrada, float correnteEntrada) {
-  FirebaseJson json;
-  json.set("data_hora", timestamp);
-  json.set("tensao_entrada", tensaoEntrada);
-  json.set("corrente_entrada", correnteEntrada);
+bool FirebaseManager::sendData(const String &sensorId, const String &timestamp, float potencia, float tensao, float corrente) {
+  if (!isReady()) {
+      Serial.println("❌ WiFi desconectado! Dados não enviados.");
+      return false;
+  }
 
+  HTTPClient http;
+  
+  // Agora usamos a data como identificador do documento
+  String docPath = "leituras/" + timestamp;  
+  String firestoreDocUrl = "https://firestore.googleapis.com/v1/projects/" + String(projectId) + "/databases/(default)/documents/" + docPath + "?key=" + String(apiKey);
+  
+  http.begin(firestoreDocUrl);
+  http.addHeader("Content-Type", "application/json");
 
-  return sendJson(path, timestamp, json); // Reutiliza o novo método
-}
+  // Criando o JSON estruturado corretamente
+  JsonDocument doc;
+  doc["fields"]["sensorId"]["stringValue"] = sensorId;
+  doc["fields"]["potencia"]["doubleValue"] = potencia;
+  doc["fields"]["tensao"]["doubleValue"] = tensao;
+  doc["fields"]["corrente"]["doubleValue"] = corrente;
 
-// Novo método: Envia um FirebaseJson já montado
-bool FirebaseManager::sendJson(const String& path, const String& timestamp, FirebaseJson& json) {
-    String fullPath = path;
-    fullPath.concat(timestamp);
+  String jsonStr;
+  serializeJson(doc, jsonStr);
 
-  if (Firebase.RTDB.setJSON(&fbdo, fullPath.c_str(), &json)) {
-    Serial.println("✅ Dados enviados com sucesso!");
-    return true;
+  // Enviar os dados via PATCH para criar um documento com a data como ID
+  int httpResponseCode = http.PATCH(jsonStr);
+  Serial.print("HTTP Response code: ");
+  Serial.println(httpResponseCode);
+
+  if (httpResponseCode == 200 || httpResponseCode == 201) {
+      Serial.println("✅ Dados enviados com sucesso para o Firestore!");
+      http.end();
+      return true;
   } else {
-    Serial.print("❌ Erro ao enviar: ");
-    Serial.println(fbdo.errorReason());
-    return false;
+      Serial.println("❌ Erro ao enviar os dados para Firestore.");
+      Serial.println(http.getString());
+      http.end();
+      return false;
   }
 }

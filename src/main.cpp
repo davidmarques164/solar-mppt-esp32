@@ -2,66 +2,65 @@
 #include <WiFi.h>
 #include "FirebaseManager.h"
 #include "TimeManager.h"
-#include "ADSManager.h"
+#include "INA219Manager.h"
 #include "WiFiHelper.h"
 
 WiFiHelper wifiHelper;
 
-// Configuração do Firebase
+// Configuração do Firebase (Firestore)
 #define API_KEY "AIzaSyD0Xugrn8xexb3eMF3AplTWljXdYmRgW0E"
-#define DATABASE_URL "https://dados-42624-default-rtdb.firebaseio.com/"
+#define PROJECT_ID "dados-42624"
 
-// Objetos FirebaseManager, TimeManager e ADSManager
-FirebaseManager firebaseManager(API_KEY, DATABASE_URL);
-TimeManager timeManager; // Usando valores padrão: "pool.ntp.org", GMT-3, sem horário de verão
-ADSManager adsManager;
+// Objetos FirebaseManager, TimeManager e INA219Manager
+FirebaseManager firebaseManager(API_KEY, PROJECT_ID);
+TimeManager timeManager;
+INA219Manager ina219Manager;
 
 unsigned long sendDataPrevMillis = 0;
 unsigned long lastWiFiCheck = 0;
 
 void setup() {
-  Serial.begin(115200);
+    Serial.begin(115200);
 
-  wifiHelper.begin(); // Inicializa o WiFi
-
-  // Inicializar o ADS1115
-  adsManager.begin();
-
-  // Configurar NTP para obter a hora correta
-  timeManager.begin();
-
-  // Inicializar Firebase
-  firebaseManager.begin();
+    wifiHelper.begin(); // Inicializa o WiFi
+    ina219Manager.begin(); // Inicializa o INA219
+    timeManager.begin(); // Configurar NTP para obter a hora correta
+    firebaseManager.begin(); // Inicializar Firestore
 }
 
 void loop() {
-  unsigned long currentMillis = millis();
+    unsigned long currentMillis = millis();
 
-  // Verifica a conexão WiFi a cada 5 minutos (300000 ms)
-  if (currentMillis - lastWiFiCheck > 300000 || lastWiFiCheck == 0) {
-    wifiHelper.verificaConexao();
-    lastWiFiCheck = currentMillis;
-  }
+    // Verifica a conexão WiFi a cada 5 minutos
+    if (currentMillis - lastWiFiCheck > 300000 || lastWiFiCheck == 0) {
+        wifiHelper.verificaConexao();
+        lastWiFiCheck = currentMillis;
+    }
 
-  // Envia dados ao Firebase a cada 2 segundos
-  if (firebaseManager.isReady() && (currentMillis - sendDataPrevMillis > 2000 || sendDataPrevMillis == 0)) {
-    sendDataPrevMillis = currentMillis;
+    // Envia dados ao Firestore a cada 2 segundos
+    if (firebaseManager.isReady() && (currentMillis - sendDataPrevMillis > 2000 || sendDataPrevMillis == 0)) {
+        sendDataPrevMillis = currentMillis;
 
-    // Obter timestamp formatado
-    String timeStamp = timeManager.getFormattedTime();
+        // Obter timestamp formatado
+        String timeStamp = timeManager.getFormattedTime();
 
-    // Ler valores do ADS1115
-    float tensaoEntrada = adsManager.readVoltage(); // Ler tensão no A0
-    float correnteEntrada = adsManager.readCurrent(); // Ler corrente no A1
+        // Ler valores do INA219
+        float tensaoEntrada = ina219Manager.readVoltage();
+        float correnteEntrada = ina219Manager.readCurrent();
+        float potenciaEntrada = tensaoEntrada*correnteEntrada;
 
-    // Enviar os dados para o Firebase
-    firebaseManager.sendData("/sensores/esp32_01/", timeStamp, tensaoEntrada, correnteEntrada);
+        // Formato de envio: Leituras > dataHora > valores de entrada > potência;tensão;corrente
+        firebaseManager.sendData("esp32_01", timeStamp, potenciaEntrada, tensaoEntrada, correnteEntrada);
 
-    // Exibir os valores lidos no Serial Monitor
-    Serial.print("Tensão Entrada: ");
-    Serial.print(tensaoEntrada);
-    Serial.print(" V | Corrente Entrada: ");
-    Serial.print(correnteEntrada);
-    Serial.println(" A");
-  }
+        // Exibir no Serial Monitor
+        Serial.print("Leituras > ");
+        Serial.print(timeStamp);
+        Serial.print(" > ");
+        Serial.print(potenciaEntrada);
+        Serial.print("W; ");
+        Serial.print(tensaoEntrada);
+        Serial.print("V; ");
+        Serial.print(correnteEntrada);
+        Serial.println("A");
+    }
 }
