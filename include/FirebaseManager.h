@@ -10,7 +10,9 @@ public:
     FirebaseManager(const char* apiKey, const char* projectId);
     void begin();
     bool isReady();
-    bool sendData(const String &sensorId, const String &timestamp, float potencia, float tensao, float corrente);
+    bool sendData(const String &sensorId, const String &timestamp, 
+        float potencia, float tensao, float corrente,
+        float temperatura, float radiacao) ;
 
 private:
     String apiKey;

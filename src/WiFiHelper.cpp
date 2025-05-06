@@ -12,7 +12,7 @@ void WiFiHelper::configModeCallback(WiFiManager *myWiFiManager) {
 }
 
 void WiFiHelper::funConecta() {
-    // Tenta conectar à última rede salva, se falhar, inicia o modo AP
+    // Tenta conectar à última rede salva, se falhar, inicia o modo APAC
     if (!wm.autoConnect("ESP32-Config", "12345678")) {
         Serial.println("⚠️ Falha na conexão WiFi, mantendo AP ativo.");
         return;
