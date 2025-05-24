@@ -3,17 +3,17 @@
 
 void MPPTManager::begin() {
   prevPower = 0.0000;
-  prevVoltage = 0.00;
-  dutyCycle = 0.20;
+  prevVoltage = 0.0000;
+  dutyCycle = 0.2000;
 
   // Configura o PWM no pino 25 com frequência de 20 kHz e resolução de 8 bits
-  ledcSetup(0, 25000, 8);      // Canal 0, frequência 25 kHz, resolução 8 bits
+  ledcSetup(0, 25000, 10);      // Canal 0, frequência 25 kHz, resolução 8 bits
   ledcAttachPin(25, 0);        // Atribuindo o pino 25 ao canal 0
   
   // Inicializa filtros
-  filteredVoltageIn = 0;
-  filteredCurrentIn = 0;
-  filteredPowerIn = 0;
+  filteredVoltageIn = 0.00;
+  filteredCurrentIn = 0.00;
+  filteredPowerIn = 0.00;
 }
 
 float MPPTManager::update(INA219Manager& ina) {
@@ -56,10 +56,10 @@ float MPPTManager::update(INA219Manager& ina) {
   float deltaV = filteredVoltageIn - prevVoltage;
   float deltaI = filteredCurrentIn - prevCurrent;
 
-  if (deltaV == 0) {
-      if (deltaI == 0) {
+  if (deltaV == 0.00) {
+      if (deltaI == 0.00) {
           dutyCycle = dutyCycle;
-      } else if (deltaI > 0) {
+      } else if (deltaI > 0.00) {
           dutyCycle += step;
       } else {
           dutyCycle -= step;
@@ -112,5 +112,5 @@ float MPPTManager::update(INA219Manager& ina) {
 
 void MPPTManager::setPWM(float pwm) {
   // Envia o PWM no pino 25, com escala de 0 a 255
-  ledcWrite(0, pwm * 255);
+  ledcWrite(0, pwm * 1023);
 }

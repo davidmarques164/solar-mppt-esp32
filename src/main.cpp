@@ -35,6 +35,9 @@ const unsigned long sendDataInterval = 300000;  // 5 minutos
 unsigned long mpptPrevMillis = 0;
 const unsigned long mpptInterval = 2000;  // 2 segundos
 
+unsigned long oledPrevMillis = 0;
+const unsigned long oledInterval = 2000;  // 2 segundos
+
 void setup() {
   Serial.begin(115200);
 
@@ -65,9 +68,14 @@ void loop() {
     oledManager.showPageByNumber(pagina, ina219Manager, meteoManager);
   }
 
-  unsigned long currentMillis = millis();
-
-  if (currentMillis - mpptPrevMillis >= mpptInterval) {
+   // Atualiza OLED automaticamente a cada 2 segundos, mesmo sem botão
+   unsigned long currentMillis = millis();
+   if (currentMillis - oledPrevMillis >= oledInterval) {
+     oledPrevMillis = currentMillis;
+     oledManager.showPageByNumber(pagina, ina219Manager, meteoManager);
+   }
+ 
+   if (currentMillis - mpptPrevMillis >= mpptInterval) {
     mpptPrevMillis = currentMillis;
     float pwm = mpptManager.update(ina219Manager);
   }
